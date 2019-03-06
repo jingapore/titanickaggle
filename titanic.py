@@ -62,6 +62,8 @@ def countCabin(x):
 combineddf['CabinCount'] = combineddf['Cabin'].apply(countCabin)
 
 Pclass_CabinCount_group = combineddf.groupby(['Pclass', 'CabinCount']).size().unstack('CabinCount').fillna(0)
+
+sns.plot(Pclass_CabinCount_group)
 ax_CabinCountvsPclass = Pclass_CabinCount_group.plot(kind='bar', stacked=True)
 
 # cabinseries = pd.DataFrame(combineddf['Cabin'])
