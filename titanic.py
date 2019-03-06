@@ -19,20 +19,20 @@ Remove examples with null vals from 'Age' and 'Embarked'.
 
 traindf = pd.read_csv('./TitanicData/all/train.csv').round({'Age':0}).drop(columns=['PassengerId', 'Ticket'])
 traindf.dropna(axis=0, subset=['Age'], inplace=True)
-print('Length and na count in traindf')
-print(len(traindf))
-print(traindf.isna().sum())
+# print('Length and na count in traindf')
+# print(len(traindf))
+# print(traindf.isna().sum())
 
 testdf = pd.read_csv('./TitanicData/all/test.csv').round({'Age':0}).drop(columns=['PassengerId', 'Ticket'])
-print('Length and na count in testdf')
-print(len(testdf))
-print(testdf.isna().sum())
+# print('Length and na count in testdf')
+# print(len(testdf))
+# print(testdf.isna().sum())
 testdf.dropna(axis=0, subset=['Age'], inplace=True) #331 rows
 
 train_survival = traindf['Survived']
 
 traindf.drop(labels='Survived', axis=1, inplace=True)
-combineddf = pd.concat([traindf, testdf]) #1043 rows, of which 712 are training data and 331 are test data.
+combineddf = pd.concat([traindf, testdf], ignore_index=True) #1043 rows, of which 712 are training data and 331 are test data.
 
 #samplesub = pd.read_csv('./TitanicData/all/gender_submission.csv')
 
@@ -44,6 +44,28 @@ Work to be done:
 - Include categories in OneHotEnc, in case not all categories are represented.
 
 '''
+
+#Examine 'Cabin' feature.
+has_cabin_mask = combineddf['Cabin'].notna()
+no_cabin_mask = combineddf['Cabin'].isna()
+
+combineddf_hascabin = combineddf[has_cabin_mask]
+combineddf_nocabin = combineddf[no_cabin_mask]
+
+#Function with input of 'Cabin' values for passenger, and return number of cabins for passenger.
+def countCabin(x):
+    if isinstance(x, str):
+        return x.count(' ')+1
+    else:
+        return 0
+
+combineddf['CabinCount'] = combineddf['Cabin'].apply(countCabin)
+
+Pclass_CabinCount_group = combineddf.groupby(['Pclass', 'CabinCount']).size().unstack('CabinCount').fillna(0)
+ax_CabinCountvsPclass = Pclass_CabinCount_group.plot(kind='bar', stacked=True)
+
+# cabinseries = pd.DataFrame(combineddf['Cabin'])
+# cabinseries_multilevels = combineddf.loc[[88, 97, 118, 311],:]
 
 #Examine 'Age' feature.
 
