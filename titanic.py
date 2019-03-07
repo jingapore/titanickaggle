@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from titanic_script import countCabin, corrTable
 
 '''
 LOADING OF CSV
@@ -39,7 +40,6 @@ combineddf['Sex'] = combineddf['Sex'].apply(lambda x: 1 if x=='male' else 0) #1 
 FEATURE ENGINEERING
 
 Work to be done:
-- Examine cabin, since it has the most number of 'na's.
 - Include categories in OneHotEnc, in case not all categories are represented.
 
 '''
@@ -68,12 +68,20 @@ ax_CabinCountvsPclass = Pclass_CabinCount_group.plot(kind='bar', stacked=True, c
 #To observe correlation strength.
 combineddf_training_survived = combineddf[combineddf['Train']==1].loc[:, combineddf.columns != 'Train']
 combineddf_training_survived['Survived'] = train_survival
-combineddf_training_survived.corr().to_csv(path_or_buf='Output/correlation.csv', columns=['Survived'])
+combineddf_training_survived.corr().to_csv(path_or_buf='Output/correlation1.csv', columns=['Survived'])
 
-#Examine 'Age' feature.
-
+#To examine 'Age' feature.
+# print(combineddf['Age'].describe())
 fig_age, ax_age = plt.subplots(1, 1, tight_layout=True)
-sns.distplot(combineddf['Age'], bins=15, kde=True, ax=ax_age)
+sns.distplot(combineddf['Age'], bins=26, kde=True, ax=ax_age)
+
+#To bin 'Age' into 26 bins.
+combineddf['Age_Bins'] = pd.cut(x=combineddf['Age'], bins=26, labels=np.linspace(1, 10, num=26)).astype(float)
+
+combineddf_training_survived = combineddf[combineddf['Train']==1].loc[:, combineddf.columns != 'Train']
+combineddf_training_survived['Survived'] = train_survival
+print(combineddf_training_survived.columns)
+combineddf_training_survived.corr().to_csv(path_or_buf='Output/correlation2.csv')
 
 # ct = ColumnTransformer([('categorical_normaliser', OneHotEncoder(), ['Pclass', 'Sex', 'Embarked']), ('continuous_normaliser', StandardScaler(), ['Age', 'SibSp', 'Parch', 'Fare'])]) #may not use 'pclass' for OneHotEnc, since values could be ordinal.
 #
