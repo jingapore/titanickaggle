@@ -1,5 +1,4 @@
 import pandas as pd
-import re, os
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -51,14 +50,6 @@ no_cabin_mask = combineddf['Cabin'].isna()
 combineddf_hascabin = combineddf[has_cabin_mask]
 combineddf_nocabin = combineddf[no_cabin_mask]
 
-#Function with input of 'Cabin' values for passenger, and return number of cabins for passenger.
-def countCabin(x):
-    if isinstance(x, str):
-        # To count 'F GXX' as 1, instead of 2--which "x.count(' ')+1" would.
-        return len(re.findall(pattern=r'\d+\s+', string=x))
-    else:
-        return 0
-
 combineddf['CabinCount'] = combineddf['Cabin'].apply(countCabin)
 
 #To plot stacked graph of 'CabinCount' vs 'Pclass'.
@@ -66,9 +57,7 @@ Pclass_CabinCount_group = combineddf.groupby(['Pclass', 'CabinCount']).size().un
 ax_CabinCountvsPclass = Pclass_CabinCount_group.plot(kind='bar', stacked=True, colormap='Blues', edgecolor='black')
 
 #To observe correlation strength.
-combineddf_training_survived = combineddf[combineddf['Train']==1].loc[:, combineddf.columns != 'Train']
-combineddf_training_survived['Survived'] = train_survival
-combineddf_training_survived.corr().to_csv(path_or_buf='Output/correlation1.csv', columns=['Survived'])
+corrTable(combineddf, train_survival, 'Output/correlation1.csv')
 
 #To examine 'Age' feature.
 # print(combineddf['Age'].describe())
@@ -76,12 +65,9 @@ fig_age, ax_age = plt.subplots(1, 1, tight_layout=True)
 sns.distplot(combineddf['Age'], bins=26, kde=True, ax=ax_age)
 
 #To bin 'Age' into 26 bins.
-combineddf['Age_Bins'] = pd.cut(x=combineddf['Age'], bins=26, labels=np.linspace(1, 10, num=26)).astype(float)
+combineddf['Age_Bins'] = pd.cut(x=combineddf['Age'], bins=26, labels=np.linspace(1, 10, num=26)).astype(float) #Type changed to float, so as to perform correlation analysis.
 
-combineddf_training_survived = combineddf[combineddf['Train']==1].loc[:, combineddf.columns != 'Train']
-combineddf_training_survived['Survived'] = train_survival
-print(combineddf_training_survived.columns)
-combineddf_training_survived.corr().to_csv(path_or_buf='Output/correlation2.csv')
+corrTable(combineddf, train_survival, 'Output/correlation2.csv')
 
 # ct = ColumnTransformer([('categorical_normaliser', OneHotEncoder(), ['Pclass', 'Sex', 'Embarked']), ('continuous_normaliser', StandardScaler(), ['Age', 'SibSp', 'Parch', 'Fare'])]) #may not use 'pclass' for OneHotEnc, since values could be ordinal.
 #
