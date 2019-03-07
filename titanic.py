@@ -32,6 +32,7 @@ traindf['Train'] = 1 #To identify whether example is from training set or test s
 
 combineddf = pd.concat([traindf, testdf], ignore_index=True) #1043 rows, of which 712 are training data and 331 are test data.
 combineddf['Sex'] = combineddf['Sex'].apply(lambda x: 1 if x=='male' else 0) #1 for male, 2 for female.
+combineddf['Embarked'].fillna(value=combineddf['Embarked'].mode(), inplace=True)
 
 #samplesub = pd.read_csv('./TitanicData/all/gender_submission.csv')
 
@@ -68,8 +69,25 @@ sns.distplot(combineddf['Age'], bins=26, kde=True, ax=ax_age)
 combineddf['Age_Bins'] = pd.cut(x=combineddf['Age'], bins=26, labels=np.linspace(1, 10, num=26)).astype(float) #Type changed to float, so as to perform correlation analysis.
 
 corrTable(combineddf, train_survival, 'Output/correlation2.csv')
+combineddf.to_csv('Output/combineddf.csv')
 
-# ct = ColumnTransformer([('categorical_normaliser', OneHotEncoder(), ['Pclass', 'Sex', 'Embarked']), ('continuous_normaliser', StandardScaler(), ['Age', 'SibSp', 'Parch', 'Fare'])]) #may not use 'pclass' for OneHotEnc, since values could be ordinal.
+'''
+Normalising and OneHot-ting features.
+
+Categorial:
+
+'Pclass': [1-3]
+'Sex': [1 (male), 0 (feamle)]
+'Embarked': [C,Q,S]
+'Age_Bin': [1 to 26]
+
+Continuous:
+'Patch'
+'Fare'
+'CabinCount'
+
+'''
+ct = ColumnTransformer([('categorical_normaliser', OneHotEncoder(), ['Pclass', 'Sex', 'Embarked']), ('continuous_normaliser', StandardScaler(), ['Age', 'SibSp', 'Parch', 'Fare'])]) #may not use 'pclass' for OneHotEnc, since values could be ordinal.
 #
 # ytrain = train_survival
 # XTrain_t = ct.fit_transform(traindf)
