@@ -85,17 +85,17 @@ Categorial:
 
 
 Continuous:
-'Patch'
+'Parch'
 'Fare'
 'CabinCount'
-'Age_Bin': [1 to 26]
+'Age_Bins': [1 to 26]
 'Pclass': [1-3]
 
 '''
 
 #numeric features
-numeric_features_no_scale = ['CabinCount', 'Age_Bin', 'Pclass']
-numeric_features_scale =  ['Patch', 'Fare']
+numeric_features_no_scale = ['CabinCount', 'Age_Bins', 'Pclass']
+numeric_features_scale =  ['Parch', 'Fare']
 categorical_features = ['Sex', 'Embarked']
 
 numeric_transformer_scale = Pipeline(steps=[
@@ -108,8 +108,8 @@ numeric_transformer_no_scale = Pipeline(steps=[
 ])
 
 categorical_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='contant', fill_value='missing')),
-    ('onehot'), OneHotEncoder(handule_unknown='ignore')
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
 ])
 
 preprocessor = ColumnTransformer(
@@ -120,19 +120,24 @@ preprocessor = ColumnTransformer(
     ]
 )
 
+'''
+Modelling
+'''
+
 clf = Pipeline(steps=[
     ('preprocessor', preprocessor),
     ('classfier', RandomForestClassifier())
 ])
+
+XTrain = combineddf.loc[combineddf['Train']==1].drop(['Train', 'Name'], axis=1)
+yTrain = train_survival
+XTest = combineddf.loc[combineddf['Train']==0].drop(['Train', 'Name'], axis=1)
+
+clf.fit(XTrain, yTrain)
+Ytest_Predict = pd.Series(data=clf.predict(XTest), index=XTest.index.values)
+Ytest_Predict.to_csv('Output/predictions_20190318.csv')
+
 #
 # ytrain = train_survival
-# XTrain_t = ct.fit_transform(traindf)
-# XTest_t = ct.fit_transform(testdf)
-
-'''
-MODEL: DECISION TREE
-'''
-
-'''
-MODEL: SVM
-'''
+# XTrain_t = clf.fit_transform(traindf)
+# XTest_t = clf.fit_transform(testdf)
