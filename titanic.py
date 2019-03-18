@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from titanic_script import countCabin, corrTable
 
 '''
 LOADING OF CSV
@@ -19,20 +20,19 @@ Remove examples with null vals from 'Age' and 'Embarked'.
 
 traindf = pd.read_csv('./TitanicData/all/train.csv').round({'Age':0}).drop(columns=['PassengerId', 'Ticket'])
 traindf.dropna(axis=0, subset=['Age'], inplace=True)
-# print('Length and na count in traindf')
-# print(len(traindf))
-# print(traindf.isna().sum())
 
 testdf = pd.read_csv('./TitanicData/all/test.csv').round({'Age':0}).drop(columns=['PassengerId', 'Ticket'])
-# print('Length and na count in testdf')
-# print(len(testdf))
-# print(testdf.isna().sum())
 testdf.dropna(axis=0, subset=['Age'], inplace=True) #331 rows
+testdf['Train'] = 0 #To identify whether example is from training set or test set, after concat.
 
 train_survival = traindf['Survived']
 
 traindf.drop(labels='Survived', axis=1, inplace=True)
+traindf['Train'] = 1 #To identify whether example is from training set or test set, after concat.
+
 combineddf = pd.concat([traindf, testdf], ignore_index=True) #1043 rows, of which 712 are training data and 331 are test data.
+combineddf['Sex'] = combineddf['Sex'].apply(lambda x: 1 if x=='male' else 0) #1 for male, 2 for female.
+combineddf['Embarked'].fillna(value=combineddf['Embarked'].mode(), inplace=True)
 
 #samplesub = pd.read_csv('./TitanicData/all/gender_submission.csv')
 
@@ -40,7 +40,6 @@ combineddf = pd.concat([traindf, testdf], ignore_index=True) #1043 rows, of whic
 FEATURE ENGINEERING
 
 Work to be done:
-- Examine cabin, since it has the most number of 'na's.
 - Include categories in OneHotEnc, in case not all categories are represented.
 
 '''
@@ -52,33 +51,47 @@ no_cabin_mask = combineddf['Cabin'].isna()
 combineddf_hascabin = combineddf[has_cabin_mask]
 combineddf_nocabin = combineddf[no_cabin_mask]
 
-#Function with input of 'Cabin' values for passenger, and return number of cabins for passenger.
-def countCabin(x):
-    if isinstance(x, str):
-        return x.count(' ')+1
-    else:
-        return 0
-
 combineddf['CabinCount'] = combineddf['Cabin'].apply(countCabin)
 
+#To plot stacked graph of 'CabinCount' vs 'Pclass'.
 Pclass_CabinCount_group = combineddf.groupby(['Pclass', 'CabinCount']).size().unstack('CabinCount').fillna(0)
-ax_CabinCountvsPclass = Pclass_CabinCount_group.plot(kind='bar', stacked=True)
+ax_CabinCountvsPclass = Pclass_CabinCount_group.plot(kind='bar', stacked=True, colormap='Blues', edgecolor='black')
 
-# cabinseries = pd.DataFrame(combineddf['Cabin'])
-# cabinseries_multilevels = combineddf.loc[[88, 97, 118, 311],:]
+#To observe correlation strength.
+corrTable(combineddf, train_survival, 'Output/correlation1.csv')
 
-#Examine 'Age' feature.
-
+#To examine 'Age' feature.
+# print(combineddf['Age'].describe())
 fig_age, ax_age = plt.subplots(1, 1, tight_layout=True)
-sns.distplot(combineddf['Age'], bins=15, kde=True, ax=ax_age)
-#ax.hist(combineddf['Age'], bins=10)
-plt.show()
+sns.distplot(combineddf['Age'], bins=26, kde=True, ax=ax_age)
 
+#To bin 'Age' into 26 bins.
+combineddf['Age_Bins'] = pd.cut(x=combineddf['Age'], bins=26, labels=np.linspace(1, 10, num=26)).astype(float) #Type changed to float, so as to perform correlation analysis.
+
+corrTable(combineddf, train_survival, 'Output/correlation2.csv')
+combineddf.to_csv('Output/combineddf.csv')
+
+'''
+Normalising and OneHot-ting features.
+
+Categorial:
+
+'Pclass': [1-3]
+'Sex': [1 (male), 0 (feamle)]
+'Embarked': [C,Q,S]
+'Age_Bin': [1 to 26]
+
+Continuous:
+'Patch'
+'Fare'
+'CabinCount'
+
+'''
 ct = ColumnTransformer([('categorical_normaliser', OneHotEncoder(), ['Pclass', 'Sex', 'Embarked']), ('continuous_normaliser', StandardScaler(), ['Age', 'SibSp', 'Parch', 'Fare'])]) #may not use 'pclass' for OneHotEnc, since values could be ordinal.
-
-ytrain = train_survival
-XTrain_t = ct.fit_transform(traindf)
-XTest_t = ct.fit_transform(testdf)
+#
+# ytrain = train_survival
+# XTrain_t = ct.fit_transform(traindf)
+# XTest_t = ct.fit_transform(testdf)
 
 '''
 MODEL: DECISION TREE
