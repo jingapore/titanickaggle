@@ -2,8 +2,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+
 from titanic_script import countCabin, corrTable
 
 '''
@@ -75,19 +80,50 @@ combineddf.to_csv('Output/combineddf.csv')
 Normalising and OneHot-ting features.
 
 Categorial:
-
-'Pclass': [1-3]
 'Sex': [1 (male), 0 (feamle)]
 'Embarked': [C,Q,S]
-'Age_Bin': [1 to 26]
+
 
 Continuous:
 'Patch'
 'Fare'
 'CabinCount'
+'Age_Bin': [1 to 26]
+'Pclass': [1-3]
 
 '''
-ct = ColumnTransformer([('categorical_normaliser', OneHotEncoder(), ['Pclass', 'Sex', 'Embarked']), ('continuous_normaliser', StandardScaler(), ['Age', 'SibSp', 'Parch', 'Fare'])]) #may not use 'pclass' for OneHotEnc, since values could be ordinal.
+
+#numeric features
+numeric_features_no_scale = ['CabinCount', 'Age_Bin', 'Pclass']
+numeric_features_scale =  ['Patch', 'Fare']
+categorical_features = ['Sex', 'Embarked']
+
+numeric_transformer_scale = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+numeric_transformer_no_scale = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='most_frequent'))
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='contant', fill_value='missing')),
+    ('onehot'), OneHotEncoder(handule_unknown='ignore')
+])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num_no_scale', numeric_transformer_no_scale, numeric_features_no_scale),
+        ('num_scale', numeric_transformer_scale, numeric_features_scale),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+clf = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classfier', RandomForestClassifier())
+])
 #
 # ytrain = train_survival
 # XTrain_t = ct.fit_transform(traindf)
